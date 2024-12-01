@@ -64,8 +64,8 @@ static int (*const async_init_fn[ASYNC_INIT_STEP_COUNT])(const struct device *de
 // checked and keep
 static int spi_cs_ctrl(const struct device *dev, bool enable) {
     const struct pixart_config *config = dev->config;
-    int err;
-
+    int err = 0;
+#ifndef CONFIG_PMW3610_DISABLE_NCS
     if (!enable) {
         k_busy_wait(T_NCS_SCLK);
     }
@@ -78,7 +78,7 @@ static int spi_cs_ctrl(const struct device *dev, bool enable) {
     if (enable) {
         k_busy_wait(T_NCS_SCLK);
     }
-
+#endif
     return err;
 }
 
@@ -204,8 +204,11 @@ static int motion_burst_read(const struct device *dev, uint8_t *buf, size_t burs
         return err;
     }
 
+// burst read requires NCS pin
+#ifndef CONFIG_PMW3610_DISABLE_NCS
     /* Send motion burst address */
     uint8_t reg_buf[] = {PMW3610_REG_MOTION_BURST};
+
     const struct spi_buf tx_buf = {.buf = reg_buf, .len = ARRAY_SIZE(reg_buf)};
     const struct spi_buf_set tx = {.buffers = &tx_buf, .count = 1};
 
@@ -228,6 +231,15 @@ static int motion_burst_read(const struct device *dev, uint8_t *buf, size_t burs
         LOG_ERR("Motion burst failed on SPI read");
         return err;
     }
+#else
+    for (size_t i = 0; i < burst_size; i++) {
+        err = reg_read(dev, PMW3610_REG_MOTION + i, &buf[i]);
+        if (err) {
+            LOG_ERR("Failed to read motions");
+            return err;
+        }
+    }
+#endif
 
     err = spi_cs_ctrl(dev, false);
     if (err) {
