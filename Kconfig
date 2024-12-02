@@ -123,7 +123,7 @@ config PMW3610_REST3_SAMPLE_TIME_MS
       Minimum value is 10.
       No optimal value provided by datasheet.
 
-choice
+choice PMW3610_ORIENTATION
     prompt "Select PMW3610 sensor orientation"
     default PMW3610_ORIENTATION_0
 

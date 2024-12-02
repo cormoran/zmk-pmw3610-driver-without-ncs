@@ -793,18 +793,18 @@ static int pmw3610_init(const struct device *dev) {
     // init trigger handler work
     k_work_init(&data->trigger_work, pmw3610_work_callback);
 
+#ifndef CONFIG_PMW3610_DISABLE_NCS
     // check readiness of cs gpio pin and init it to inactive
     if (!device_is_ready(config->cs_gpio.port)) {
         LOG_ERR("SPI CS device not ready");
         return -ENODEV;
     }
-
     err = gpio_pin_configure_dt(&config->cs_gpio, GPIO_OUTPUT_INACTIVE);
     if (err) {
         LOG_ERR("Cannot configure SPI CS GPIO");
         return err;
     }
-
+#endif
     // init irq routine
     err = pmw3610_init_irq(dev);
     if (err) {
