@@ -40,7 +40,7 @@ static const int32_t async_init_delay[ASYNC_INIT_STEP_COUNT] = {
     [ASYNC_INIT_STEP_CLEAR_OB1] =
         200,                          // 150 us required, test shows too short,
                                       // also power-up reset is added in this step, thus using 50 ms
-    [ASYNC_INIT_STEP_CHECK_OB1] = 50, // 10 ms required in spec,
+    [ASYNC_INIT_STEP_CHECK_OB1] = 100, // 10 ms required in spec,
                                       // test shows too short,
                                       // especially when integrated with display,
                                       // > 50ms is needed
@@ -232,11 +232,20 @@ static int motion_burst_read(const struct device *dev, uint8_t *buf, size_t burs
         return err;
     }
 #else
-    for (size_t i = 0; i < burst_size; i++) {
-        err = reg_read(dev, PMW3610_REG_MOTION + i, &buf[i]);
-        if (err) {
-            LOG_ERR("Failed to read motions");
-            return err;
+    err = reg_read(dev, PMW3610_REG_MOTION, &buf[0]);
+    if (err) {
+        LOG_ERR("Failed to read motions");
+        return err;
+    }
+    if (buf[0] & PMW3610_MOTION_BIT == 0) {
+        LOG_DBG("No motion, skip");
+    } else if (burst_size > 1) {
+        for (size_t i = 1; i < burst_size; i++) {
+            err = reg_read(dev, PMW3610_REG_MOTION + i, &buf[i]);
+            if (err) {
+                LOG_ERR("Failed to read motions");
+                return err;
+            }
         }
     }
 #endif
@@ -635,6 +644,9 @@ static int pmw3610_report_data(const struct device *dev) {
     int err = motion_burst_read(dev, buf, sizeof(buf));
     if (err) {
         return err;
+    }
+    if ((buf[0] & PMW3610_MOTION_BIT) == 0) {
+        return 0;
     }
 
     int16_t raw_x =

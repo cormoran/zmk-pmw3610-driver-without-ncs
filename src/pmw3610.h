@@ -92,6 +92,8 @@ extern "C" {
 #define PMW3610_SHUTTER_H_POS 5
 #define PMW3610_SHUTTER_L_POS 6
 
+#define PMW3610_MOTION_BIT BIT(7)
+
 /* cpi/resolution range */
 #define PMW3610_MAX_CPI 3200
 #define PMW3610_MIN_CPI 200
